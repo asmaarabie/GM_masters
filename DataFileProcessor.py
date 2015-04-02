@@ -1,8 +1,8 @@
 import os
 from numpy import linalg as LA
 import numpy as np
-
-def get_gesture_readings (gestures, dataset_source):
+from settings import settings
+def get_gesture_readings (gestures):
 
 	for gesture in gestures['g_dir']: 
 		gesture_acc_readings = []
@@ -17,7 +17,7 @@ def get_gesture_readings (gestures, dataset_source):
 
 			for name in files :
 				file_name = os.path.join(root, name)
-				readings = get_file_readings(file_name, dataset_source)
+				readings = get_file_readings(file_name)
 
 				# Append this gesture file readings to the whole gesture's readings (file / gesture)
 				gesture_acc_readings.append(readings['acc'])
@@ -28,11 +28,11 @@ def get_gesture_readings (gestures, dataset_source):
 		gestures['gyro_readings'].append(gesture_gyro_readings)
 	return gestures
 
-def get_file_readings(file_name, dataset_source):
+def get_file_readings(file_name):
 	
 	with open(file_name, 'r') as handler:
 		readings= {'acc': [], 'gyro': []}
-		if dataset_source == "MoGeRe":
+		if settings['dataset_source'] == "MoGeRe":
 			# skip first line 
 			handler.readline()
 			while True:
@@ -53,20 +53,21 @@ def get_file_readings(file_name, dataset_source):
  Removes readings that have a previous reading < dupl_thresh
 """
 
-def filter_idle_and_dupl(readings, idle_thresh, dupl_thresh):
+def filter_idle_and_dupl(readings):
 	for gesture in readings:
 		for g_file in gesture:
 			prev_reading = []
 			for reading in g_file:
 				# :TODO: test this threshold
 				# reading = [reading_x, reading_y, reading_z]
-				if 	(abs(reading[0]) < idle_thresh and 
-					abs(reading[1] < idle_thresh) and 
-					abs(reading[2]) < idle_thresh) :
+				if 	(abs(reading[0]) < settings['idle_thresh'] and 
+					abs(reading[1] < settings['idle_thresh']) and 
+					abs(reading[2]) < settings['idle_thresh']) :
 					g_file.remove (reading)
 
 				# :TODO: test this threshold
-				if prev_reading and LA.norm(np.array(reading) - np.array(prev_reading)) < dupl_thresh:
+				if (prev_reading and 
+					LA.norm(np.array(reading) - np.array(prev_reading)) < settings['dupl_thresh']):
 					g_file.remove (reading)
 				prev_reading = reading
 
