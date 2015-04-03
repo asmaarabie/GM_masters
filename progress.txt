@@ -1,0 +1,11 @@
+============ April 3rd 2015 ============
+- Working version of the code
+- Not sure if it is correct
+- Confusion matrix is messy --> each run produces a whole different output
+- Reasons:
+	- Random codebook per gesture
+	- Random HMM settings (probability distribution out of baum-welch is random (doesn't converge to the same setting each time))
+- Getting this error from the internals of viterbi: GHMM ghmm.py:148 - viterbi.c:ghmm_dmodel_viterbi(328): state_seq_index = -1, t = 40 --> mail ticket http://sourceforge.net/p/ghmm/mailman/message/26338592/
+
+
+
