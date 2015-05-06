@@ -71,9 +71,29 @@ def filter_idle_and_dupl(readings):
 					g_file.remove (reading)
 				prev_reading = reading
 
+	#readings = runningAverage(readings)		
+	#print readings	
 	# :TODO: print some statistics about which readings are removed
 	return readings
 
+def runningAverage(readings):
+	# Smoothed readings
+	final_readings=[]
+	for gesture in readings:
+		gesture_r = []
+		for g_file in gesture:
+			g_file_r = []
+			for i in range (0, len(g_file) - settings['window_size'], settings['step_size']):
+				reading = [0,0,0]
+				print str(i) + " i"
+				for j in range (0, settings['window_size']):
+					reading = [sum(x) for x in zip(reading, g_file[i+j])]
+				reading = [ x*1.0 / settings['window_size'] for x in reading]
+				print reading
+				g_file_r.append(reading)
+			gesture_r.append(g_file_r)
+		final_readings.append(gesture_r)		
+	return final_readings
 def count_readings (list):
 	return sum(1 for row in list
       for i in row 

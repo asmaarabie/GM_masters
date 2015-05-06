@@ -1,3 +1,10 @@
+"""
+This is a deprecated code using GHMM library. Kept here for reference.
+"""
+"""
+
+
+
 from ghmm import *
 import numpy as np
 from settings import settings
@@ -12,28 +19,31 @@ def train_gesture (gesture):
 
 	# :TODO: Find how to train multiple sequences
 	# All sequences (all files) for a gesture is used for Expectation maximization
-	flattened = [reading for g_file in gesture for reading in g_file]
-	train_seq = EmissionSequence(sigma, flattened)
+	# for g_file in gesture:
+	# 	flattened = [reading for reading in g_file]
+	# 	train_seq = EmissionSequence(sigma, g_file)
+	# 	m.baumWelch(train_seq)
+	#flattened = [reading for reading in g_file]
+	train_seq = EmissionSequence(sigma, gesture[0])
 	m.baumWelch(train_seq)
-
+	m.sampleSingle(200)
 	
-	if settings['HMM_library'] == 'GHMM':
-		m = remove_silent_states(m)	
 	return m 
 
-"""
+""" """
 Test a gesture given:
 	- gesture(s)
 	- HM models
 	- label(s) of a gesture
-"""
+""" """
 def test_gesture(gestures, HMMs) :
 	sigma = IntegerRange(0,settings['codebook_size'])
 	results = []
 	ground = []
-	for label, gesture in enumerate(gestures):
+	
+	for gesture in gestures:
 		prediction=[]
-		
+
 		for HMM in HMMs:
 			# gesture[0] is the sequence, gesture[1] is the label
 
@@ -98,12 +108,4 @@ def init_HMM () :
 		
 
 	return [B_alpha, A, B, pi]
-
 """
-There are situations in which the HMM to be learned includes "silent states", which do
-not emit a letter.
-GHMM doesn't handle silent letters 
-"""
-def remove_silent_states (m):
-
-	return m
