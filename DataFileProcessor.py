@@ -2,6 +2,7 @@ import os
 from numpy import linalg as LA
 import numpy as np
 from settings import settings
+import copy
 def get_gesture_readings (gestures):
 
 	for gesture in gestures['g_dir']: 
@@ -44,7 +45,7 @@ def get_file_readings(file_name):
 
 				# :TODO: check that file is read correctly
 				line = map(float, line)
-				readings['acc'].append(line[2:5])
+				readings['acc'].append([line[2], line[3], line[4]+1]) # remove the -1 effect
 				readings['gyro'].append(line[5:])
 		return readings
 
@@ -52,6 +53,56 @@ def get_file_readings(file_name):
  Removes readings that have a norm < idle threshold
  Removes readings that have a previous reading < dupl_thresh
 """
+def filter_idle(readings):
+	for gesture in readings:
+		for g_file in gesture:
+			for reading in g_file:
+				# :TODO: test this threshold
+				# reading = [reading_x, reading_y, reading_z]
+				if 	(abs(reading[0]) < settings['idle_thresh']):
+					reading[0] = 0.0
+				if (abs(reading[1]) < settings['idle_thresh']):
+					reading[1] = 0.0
+				if (abs(reading[2]) < settings['idle_thresh']) :
+					reading[2] = 0.0
+	return readings
+
+"""
+ Removes readings that have a norm < idle threshold over a window of size size
+"""
+def filter_idle_over_window(readings):
+	size = settings['window_size']
+	overlap = settings['overlap']
+
+	new_readings = copy.deepcopy(readings)
+	for gesture in new_readings:
+		for g_file in gesture:
+			x_ = [abs(reading[0]) for reading in g_file ]
+			y_ = [abs(reading[1]) for reading in g_file ]
+			z_ = [abs(reading[2]) for reading in g_file ]
+			# x_all_avg = (sum(x_)/len(x_)) * 1.0
+			# y_all_avg = (sum(y_)/len(y_)) * 1.0
+			# z_all_avg = (sum(z_)/len(z_)) * 1.0
+			flag = 0
+			for window_start in xrange(0,len(g_file), int (size*overlap)):
+  				# get average of the window 
+  				x_avg = (sum(x_[window_start: window_start+size])/size) * 1.0
+  				y_avg = (sum(y_[window_start: window_start+size])/size) * 1.0
+  				z_avg = (sum(z_[window_start: window_start+size])/size) * 1.0
+  				if 	(x_avg < settings['idle_thresh'] and 
+  					y_avg < settings['idle_thresh'] and
+  					z_avg < settings['idle_thresh']):
+  				# if 	(x_avg < x_all_avg and 
+  				# 	y_avg < y_all_avg and
+  				# 	z_avg < z_all_avg):
+  					for i in g_file[window_start : window_start + int(size*overlap)] :
+  						g_file.remove(i)
+  					flag = 1
+  				
+  				# if flag == 1: 
+  				# 	break
+
+	return new_readings
 
 def filter_idle_and_dupl(readings):
 	for gesture in readings:

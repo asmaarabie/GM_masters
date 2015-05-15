@@ -1,13 +1,12 @@
 clc;
 clear;
 addpath(genpath('~/HMMall'));
-%load('Datasets/processed/mapped_data_1430879228.mat');
-%load('Datasets/processed/2class_1codebook_1430891729.mat');
-load('Datasets/processed/2class_1codebook_1430891729.mat');
+load('Datasets/processed/square_parts_mapped_1431214818.mat');
+%load('Datasets/processed/square_parts_mapped_w_1431214818.mat');
 % Python starts indices from 0, matlab from 1. Add 1 to python mat
 for i=1:size(acc_mapped_to_codebook,1)
 	for j = 1:size(acc_mapped_to_codebook,2)
-		acc_mapped_to_codebook(i,j,:) = acc_mapped_to_codebook(i,j,:) +1;
+		acc_mapped_to_codebook{i,j,:} = acc_mapped_to_codebook{i,j,:} +1;
 	end
 end
 
@@ -50,7 +49,7 @@ for r = 1:runs
 	LL 		= zeros (1, max_iter, size(train_set,1));
 	prior	= zeros (Q,1, size(train_set,1));
 
-	% Todo remove the 1:10
+
 	for i=1:size(train_set,1)
 		[LL, prior(:,1,i), transmat(:,:,i), obsmat(:,:,i)] = dhmm_em(train_set(i,:,:), prior1, transmat1, obsmat1, 'max_iter', max_iter);
 	end
@@ -58,7 +57,7 @@ for r = 1:runs
 	% use model to compute log likelihood
 	%loglik = dhmm_logprob(test_set(1,1), prior2, transmat2, obsmat2)
 	% log lik is slightly different than LL(end), since it is computed after the final M step
-	confusion_matrix = zeros(2);
+	confusion_matrix = zeros(size(acc_mapped_to_codebook,1));
 	likelihood = zeros(1, size(test_set,1));
 	for i=1:size(test_set,1)
 		for j=1:size(test_set,2)
