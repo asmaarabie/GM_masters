@@ -1,14 +1,16 @@
 clc;
 clear;
 addpath(genpath('~/HMMall'));
-load('Datasets/processed/square_parts_mapped_1431214818.mat');
+load('Datasets/processed/square_parts_mapped_filtered_1431887536.mat');
 %load('Datasets/processed/square_parts_mapped_w_1431214818.mat');
 % Python starts indices from 0, matlab from 1. Add 1 to python mat
+%{
 for i=1:size(acc_mapped_to_codebook,1)
 	for j = 1:size(acc_mapped_to_codebook,2)
 		acc_mapped_to_codebook{i,j,:} = acc_mapped_to_codebook{i,j,:} +1;
 	end
 end
+%}
 
 % Calculate the average of multiple runs of HMM 
 runs = 10;
@@ -57,7 +59,7 @@ for r = 1:runs
 	% use model to compute log likelihood
 	%loglik = dhmm_logprob(test_set(1,1), prior2, transmat2, obsmat2)
 	% log lik is slightly different than LL(end), since it is computed after the final M step
-	confusion_matrix = zeros(size(acc_mapped_to_codebook,1));
+	confusion_matrix = zeros(size(acc_mapped_to_codebook,1), size(acc_mapped_to_codebook,1) +1);
 	likelihood = zeros(1, size(test_set,1));
 	for i=1:size(test_set,1)
 		for j=1:size(test_set,2)
@@ -66,11 +68,18 @@ for r = 1:runs
 				likelihood(:,k) = dhmm_logprob(test_set(i,j,:), prior(:,:,k), transmat(:,:,k), obsmat(:,:,k));
 			end
 			[val, index] = max(likelihood(:,:));
+			
+			% Added a check that val is not -Inf, to add it to the null class
+			if val == -Inf
+				index = size (confusion_matrix, 2);
+			end 
 			confusion_matrix(i,index) = confusion_matrix(i,index)+ 1;
+
 		end
 	end
 
-	accuracy = trace (confusion_matrix) / sum(sum(confusion_matrix));
+	% 1:size (confusion_matrix, 1) --> to make sure it is a square matrix
+	accuracy = trace (confusion_matrix(:, 1:size (confusion_matrix, 1))) / sum(sum(confusion_matrix));
 	avg_accuracy = avg_accuracy+ accuracy;
 	best_accuracy = max([accuracy best_accuracy]);
 end

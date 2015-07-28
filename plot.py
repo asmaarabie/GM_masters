@@ -20,7 +20,7 @@ def main(gestures):
 	# Step #1 : Read and prepare readings
 	gestures = get_gesture_readings(gestures)
 	
-	dir_name = "plots/square_parts_dataset";
+	dir_name = "plots/Lines/find_best_primitives";
 	shutil.rmtree(dir_name)
 	os.mkdir(dir_name, 0777)
 
@@ -28,7 +28,7 @@ def main(gestures):
 		os.mkdir(dir_name+"/"+gestures['g_dir'][g_index], 0777)
 		for s_index, sample in enumerate(gesture):
 			
-			fig = plt.figure(figsize=(20,10))
+			fig = plt.figure(figsize=(10,5))
 			fig.suptitle("Gesture: "+ gestures['g_dir'][g_index] + ", sample: " + str(s_index), fontsize=18);
 			#fig.subplots_adjust(wspace=1)
 
@@ -59,7 +59,7 @@ def main(gestures):
 			# g_sample is the gyro sample
 
 			g_sample = gestures['gyro_readings'][g_index][s_index]; # 2 for the square gesture, 0 for the first sample
-	
+			t = np.arange(0,len(g_sample), 1)
 			pitch_data = [x for x,y,z in g_sample ]
 			roll_data = [y for x,y,z in g_sample ]
 			yaw_data = [z for x,y,z in g_sample ]
@@ -82,6 +82,7 @@ def main(gestures):
 			plt.legend()
 			plt.savefig(dir_name+"/"+gestures['g_dir'][g_index]+"/"+"rep"+str(s_index)+".png",  bbox_inches='tight')
 
+			plt.close(fig)
 
 main (gestures)
 

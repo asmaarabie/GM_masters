@@ -10,6 +10,7 @@ from scipy.cluster.vq import vq, kmeans, whiten
 from scipy import io
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
+import random 
 
 # Gesture 
 gestures = {
@@ -30,9 +31,8 @@ def create_gesture_codebook (gestures) :
 	Before running k-means, it is beneficial to rescale each feature dimension of the observation
 	set with whitening. Each feature is divided by its standard deviation across all observations 
 	to give it unit variance.
-	
-	Modification: creating a single codebook for all classes
 	"""
+
 	# Flatten gesture readings: as each gesture has F files each containing R readings
 	flattened = [reading for gesture in gestures for g_file in gesture for reading in g_file]
 
@@ -46,11 +46,36 @@ def create_gesture_codebook (gestures) :
 	# kmean_res, dist = kmeans(whitened, settings['codebook_size'])
 	# return [kmean_res, dist ]
 
+"""
+:TODO: write this function's describtion
+"""
+def replicate (gesture) :
+	for rep, g_file in enumerate(gesture):
+		if len(g_file) != 0 :
+			replica = g_file
+			break
+	return replica
+
 def map_gesture_to_codebook (gesture, codebook):
 	quantized_gesture=[]
-	for g_file in gesture:
+	for rep, g_file in enumerate(gesture):
+		# Sometimes the g_file is empty due to data cleanup, empty files should be removed
+		# Since we need the size of samples to be the same / gesture, I'll replicate
+		# samples randomly, :TODO: find another way 
+		index = 0
+		while len(g_file) == 0 :
+			random.seed(index)
+			index = random.randint(0,len(gesture)-1)
+			g_file = gesture[index]
+
 		[code, distortion] = vq(np.array(g_file),codebook)
-		quantized_gesture.append(code.tolist())
+		code = code.tolist()
+		
+		if settings['HMM_library'] == "Murphy" :
+			# as we're working on matlab, indices there starts with 1
+			code  = [c+1 for c in code]
+
+		quantized_gesture.append(code)
 	return quantized_gesture
 
 def plot (sample):
@@ -76,25 +101,13 @@ def plot (sample):
 	
 
 def main(gestures):
+	
 	# Step #1 : Read and prepare readings
 	gestures = get_gesture_readings(gestures)
-	# print len(gestures['acc_readings'][3][4])
 	
-	# fig = plt.figure(figsize=(20,10))
-	# fig.suptitle("Gesture: vline-down, sample: 4", fontsize=18);
-	# plt.xlabel('readings', fontsize=12)
-	# plt.ylabel('time', fontsize=12)
-	
-	# plt.subplot(121)
-	# plot(gestures['acc_readings'][3][4])
-
-	if settings['filter'] : 
-		gestures['acc_readings'] = filter_idle_over_window(gestures['acc_readings'])
-	
-	# print len(gestures['acc_readings'][3][4])
-	# plt.subplot(122)
-	# plot(gestures['acc_readings'][3][4])
-	# plt.show()
+	# Plot first sample of the first gesture
+	plot(gestures['acc_readings'][0][0])
+	plt.show()
 
 	# Step #2 : Quantize the readings and create clusters
 	[codebook, distortion] = create_gesture_codebook (gestures['acc_readings'])
@@ -106,9 +119,12 @@ def main(gestures):
 
 	# Step #4 : save matrix
 	
-	#io.savemat('Datasets/processed/square_parts_mapped_filtered_1431654181.mat', mdict={'acc_mapped_to_codebook': np.array(gestures['acc_mapped_to_codebook'])})
-	path = 'Datasets/processed/square_parts_mapped_filtered_1431654181.mat'
-	os.remove(path)
+	
+	path = 'Datasets/processed/square_parts_mapped_filtered_1431887536.mat'
+	try:
+		os.remove(path)
+	except OSError:
+		pass
 	io.savemat(path, mdict={'acc_mapped_to_codebook': np.array(gestures['acc_mapped_to_codebook'])})
 	print "distortion: " + str(distortion)
 	with open('run.log', 'w+') as logger :
