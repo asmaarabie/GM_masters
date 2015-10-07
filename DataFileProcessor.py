@@ -18,7 +18,7 @@ def get_gesture_readings (gestures):
 		gesture_gyro_readings = []
 		# Walk through all files in a gesture directory
 		for root,_, files in os.walk(gestures['root']+gesture, topdown=False):
-			
+			files.sort()
 			# Count the number of files per gesture directory
 			gestures['file_count'].append(len(files))
 			file_acc_readings = []

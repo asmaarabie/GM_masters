@@ -106,11 +106,16 @@ def main(gestures):
 	gestures = get_gesture_readings(gestures)
 	
 	# Plot first sample of the first gesture
-	plot(gestures['acc_readings'][0][0])
-	plt.show()
+	# plot(gestures['acc_readings'][0][0])
+	# plt.show()
 
 	# Step #2 : Quantize the readings and create clusters
-	[codebook, distortion] = create_gesture_codebook (gestures['acc_readings'])
+	file_path = 'codebook.npy'
+	if settings["load_codebook"] and os.path.exists(file_path):
+		[codebook, distortion] = np.load(file_path)
+	else:
+		[codebook, distortion] = create_gesture_codebook (gestures['acc_readings'])
+		np.save(file_path,np.array([codebook, distortion]))
 	
 	# Step #3 : Map each gesture sample to a codebook 
 	for index, gesture in enumerate(gestures['acc_readings']):
@@ -119,8 +124,8 @@ def main(gestures):
 
 	# Step #4 : save matrix
 	
+	path = 'Datasets/processed/conact_1438175944.mat'
 	
-	path = 'Datasets/processed/square_parts_mapped_filtered_1431887536.mat'
 	try:
 		os.remove(path)
 	except OSError:

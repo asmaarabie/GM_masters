@@ -1,7 +1,7 @@
 clc;
 clear;
 addpath(genpath('~/HMMall'));
-load('Datasets/processed/square_parts_mapped_filtered_1431887536.mat');
+load('Datasets/processed/Lines_best_primitives_1438175944');
 %load('Datasets/processed/square_parts_mapped_w_1431214818.mat');
 % Python starts indices from 0, matlab from 1. Add 1 to python mat
 %{
@@ -19,13 +19,13 @@ best_accuracy =0;
 for r = 1:runs 
 	% Divide it into train and test
 	% Select 20% of data for training and 80% to find average likelihood. 
-	k = 2; % how many folds i want
+	k = 3; % how many folds i want
 	N = size(acc_mapped_to_codebook,2);
 	indices = crossvalind('Kfold',N,k);
 
 	% Split orignial set
-	test = (indices == 1) ; % which points are in the test set
-	train= ~test; % all points that are NOT in the test set
+	train = (indices == 1) ; % which points are in the test set
+	test= ~train; % all points that are NOT in the test set
 
 	test_set = acc_mapped_to_codebook(:,test,:);
 	train_set = acc_mapped_to_codebook(:, train,:);
@@ -59,7 +59,7 @@ for r = 1:runs
 	% use model to compute log likelihood
 	%loglik = dhmm_logprob(test_set(1,1), prior2, transmat2, obsmat2)
 	% log lik is slightly different than LL(end), since it is computed after the final M step
-	confusion_matrix = zeros(size(acc_mapped_to_codebook,1), size(acc_mapped_to_codebook,1) +1);
+	confusion_matrix = zeros(size(acc_mapped_to_codebook,1), size(acc_mapped_to_codebook,1));
 	likelihood = zeros(1, size(test_set,1));
 	for i=1:size(test_set,1)
 		for j=1:size(test_set,2)
@@ -69,11 +69,12 @@ for r = 1:runs
 			end
 			[val, index] = max(likelihood(:,:));
 			
-			% Added a check that val is not -Inf, to add it to the null class
-			if val == -Inf
-				index = size (confusion_matrix, 2);
+			% Added a check that val is not -Inf, do not add it to the matrix
+			if val ~= -Inf
+				%index = size (confusion_matrix, 2);
+				confusion_matrix(i,index) = confusion_matrix(i,index)+ 1;
 			end 
-			confusion_matrix(i,index) = confusion_matrix(i,index)+ 1;
+			
 
 		end
 	end

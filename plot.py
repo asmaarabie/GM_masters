@@ -20,7 +20,7 @@ def main(gestures):
 	# Step #1 : Read and prepare readings
 	gestures = get_gesture_readings(gestures)
 	
-	dir_name = "plots/Lines/find_best_primitives";
+	dir_name = "plots/Lines/find_best_primitives/vline-down";
 	shutil.rmtree(dir_name)
 	os.mkdir(dir_name, 0777)
 
