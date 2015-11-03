@@ -9,8 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import shutil
 gestures = {
-	'root': settings['dataset_root'],			# Where dataset is
-	'g_dir' : settings['gestures_dirs'], 		# Each gesture files is contained in a separate directory
+	'train_root': settings['train_dataset_root'],			# Where train dataset is
+	'train_dirs' : settings['train_dirs'], 		# Each gesture files is contained in a separate directory
 	'file_count': [],				# Number of files per gesture
 	'acc_readings': [],				# All Accelerometer readings for all files per all gestures 
 	'gyro_readings': [],			# All Gyroscope readings for all files per all gestures 
@@ -18,9 +18,9 @@ gestures = {
 
 def main(gestures):
 	# Step #1 : Read and prepare readings
-	gestures = get_gesture_readings(gestures)
+	gestures = get_gesture_readings(gestures['train_dirs'], gestures['train_root'])
 	
-	dir_name = "plots/Lines/find_best_primitives/vline-down";
+	dir_name = "plots/lines_60hz/";
 	shutil.rmtree(dir_name)
 	os.mkdir(dir_name, 0777)
 

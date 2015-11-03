@@ -12,8 +12,10 @@ import numpy as np
 from scipy import io
 # Gesture 
 gestures = {
-	'root': settings['dataset_root'],			# Where dataset is
-	'g_dir' : settings['gestures_dirs'], 		# Each gesture files is contained in a separate directory
+	'train_root': settings['train_dataset_root'],			# Where train dataset is
+	'test_root': settings['test_dataset_root'],			# Where test dataset is
+	'train_dirs' : settings['train_dirs'], 		# Each gesture files is contained in a separate directory
+	'test_dirs' : settings['test_dirs'], 
 	'file_count': [],				# Number of files per gesture
 	'acc_readings': [],				# All Accelerometer readings for all files per all gestures 
 	'gyro_readings': [],			# All Gyroscope readings for all files per all gestures 
@@ -30,7 +32,7 @@ if settings['logging'] :
 
 # Step #1 : Read and prepare readings
 # 	1.1 : read
-gestures = get_gesture_readings(gestures)
+gestures = get_gesture_readings(gestures['train_dirs'], gestures['train_root'])
 
 # 	1.2 : filter
 c_bef_filter = count_readings(gestures['acc_readings'])

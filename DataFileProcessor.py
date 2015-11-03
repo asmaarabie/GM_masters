@@ -3,24 +3,28 @@ from numpy import linalg as LA
 import numpy as np
 from settings import settings
 import copy
-def get_gesture_readings (gestures):
+import re
+def get_gesture_readings (gesture_dir, gesture_root):
 	# Get bias values
-	bias_ret = bias()
+	bias_ret = []
 	if settings['logging']:
 		print "bias is:" + str(bias_ret)
 		if settings['remove_bias']:
 			print 'remove bias'
+			bias_ret = bias()
 		else: 
 			print " don't remove bias"
 
-	for gesture in gestures['g_dir']: 
+	acc_readings = []
+	gyro_readings = []
+	for gesture in gesture_dir: 
 		gesture_acc_readings = []
 		gesture_gyro_readings = []
 		# Walk through all files in a gesture directory
-		for root,_, files in os.walk(gestures['root']+gesture, topdown=False):
-			files.sort()
+		for root,_, files in os.walk(gesture_root+gesture, topdown=False):
+			files = natural_sort(files)
+			
 			# Count the number of files per gesture directory
-			gestures['file_count'].append(len(files))
 			file_acc_readings = []
 			file_gyro_readings = []
 
@@ -33,13 +37,16 @@ def get_gesture_readings (gestures):
 				gesture_gyro_readings.append(readings['gyro'])
 
 		# Append whole gestures readings (gesture)
-		gestures['acc_readings'].append(gesture_acc_readings)
-		gestures['gyro_readings'].append(gesture_gyro_readings)
-	return gestures
+		acc_readings.append(gesture_acc_readings)
+		gyro_readings.append(gesture_gyro_readings)
+
+	print "Max is " + str(max(max(max(acc_readings))))
+	return [acc_readings, gyro_readings]
 
 def get_file_readings(file_name, bias_ret):
 	
 	with open(file_name, 'r') as handler:
+		
 		readings= {'acc': [], 'gyro': []}
 		if settings['dataset_source'] == "MoGeRe":
 			# skip first line 
@@ -50,16 +57,15 @@ def get_file_readings(file_name, bias_ret):
 				if line == "": 
 					break
 				line = line.rstrip().split(',')
-				#print file_name
 				
 				line = map(float, line)
 
-				if settings['remove_axis'] == 'X':
-					line[2] = 0.0
-				elif settings['remove_axis'] == 'Y':
-					line[3] = 0.0
-				elif settings['remove_axis'] == 'Z':
-					line[4] = 0.0
+				# if settings['remove_axis'] == 'X':
+				# 	line[2] = 0.0
+				# elif settings['remove_axis'] == 'Y':
+				# 	line[3] = 0.0
+				# elif settings['remove_axis'] == 'Z':
+				# 	line[4] = 0.0
 
 				if settings['remove_bias']:
 					# Remove the bias from readings
@@ -96,11 +102,11 @@ def filter_idle(readings):
 			for reading in g_file:
 				# :TODO: test this threshold
 				# reading = [reading_x, reading_y, reading_z]
-				if 	(abs(reading[0]) < settings['idle_thresh']):
+				if 	(abs(reading[0]) <= settings['idle_thresh']):
 					reading[0] = 0.0
-				if (abs(reading[1]) < settings['idle_thresh']):
+				if (abs(reading[1]) <= settings['idle_thresh']):
 					reading[1] = 0.0
-				if (abs(reading[2]) < settings['idle_thresh']) :
+				if (abs(reading[2]) <= settings['idle_thresh']) :
 					reading[2] = 0.0
 	return readings
 
@@ -182,9 +188,9 @@ def delineate_forward(g_file, file_name):
 			# 	z_avg < z_all_avg):
 	
 	# I care about idle_threshold and -idle_threshold so the abs is used
-		if 	(abs(x_avg) < settings['idle_thresh'] and 
-			abs(y_avg) < settings['idle_thresh'] and
-			abs(z_avg) < settings['idle_thresh']):
+		if 	(abs(x_avg) <= settings['idle_thresh'] and 
+			abs(y_avg) <= settings['idle_thresh'] and
+			abs(z_avg) <= settings['idle_thresh']):
 			
 			# Remove values at the first half of the window as the other half contributes to 
 			# the next window due to the overlap
@@ -235,9 +241,9 @@ def delineate_backward(g_file, file_name):
 			# 	z_avg < z_all_avg):
 	
 	# I care about idle_threshold and -idle_threshold so the abs is used
-		if 	(abs(x_avg) < settings['idle_thresh'] and 
-			abs(y_avg) < settings['idle_thresh'] and
-			abs(z_avg) < settings['idle_thresh']):
+		if 	(abs(x_avg) <= settings['idle_thresh'] and 
+			abs(y_avg) <= settings['idle_thresh'] and
+			abs(z_avg) <= settings['idle_thresh']):
 			
 			# I want to zero the second "half of the window 
 			zeros_start = window_end - int (size*overlap)
@@ -320,6 +326,10 @@ Using a separate dataset for calibration, this function:
 P.S. The values are multiplied by -1 so that they can be summed-up directly
 """
 def bias ():
+	file_path = 'bias.npy'
+	if settings["load_bias"] and os.path.exists(file_path):
+		return np.load(file_path)
+
 	line_count = 0.0
 	acc_reading = [0,0,0]
 	gyro_reading = [0,0,0]
@@ -327,7 +337,7 @@ def bias ():
 	for root,_, files in os.walk(settings ['bias-calib-dir'], topdown=False):
 		for name in files :	
 			file_name = os.path.join(root, name)
-
+			print file_name
 			with open(file_name, 'r') as handler:
 				# skip first line 
 				handler.readline()
@@ -347,4 +357,10 @@ def bias ():
 	acc_reading = [-1*a/line_count for a in acc_reading]
 	gyro_reading = [-1*a/line_count for a in acc_reading]
 
+	np.save(file_path,np.array([ acc_reading, gyro_reading]))
 	return [ acc_reading, gyro_reading]
+
+def natural_sort(l): 
+    convert = lambda text: int(text) if text.isdigit() else text.lower() 
+    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
+    return sorted(l, key = alphanum_key)

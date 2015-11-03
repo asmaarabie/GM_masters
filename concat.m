@@ -1,24 +1,25 @@
+% TODO: run python here
+%commandStr = 'python /Users/myName/pathToScript/sqr.py 2';
+% [status, commandOut] = system(commandStr);
+% if status==0
+%     fprintf('squared result is %d\n',str2num(commandOut));
+% end
 clc;
 clear;
 addpath(genpath('~/HMMall'));
-load('Datasets/processed/conact_1438175944.mat');
+load('Datasets/processed/line60hz_train.mat');
+load('Datasets/processed/line60hz_test.mat');
 
-models_count = size(acc_mapped_to_codebook,2);
-primitives = 7;
-concats = models_count - primitives;
-
-train_set = acc_mapped_to_codebook(1,1:primitives);
-test_set = acc_mapped_to_codebook(1,primitives+1:models_count);
-
+primitives = size(train,2);
 
 % Prepare HMM
-Q = 8;
-O = 8;
-max_iter = 3;
+Q = 4;
+O = 27;
+max_iter =10;
 
 % initial guess of parameters
 prior1 = zeros(Q,1);
-prior1(1)= 1;
+prior1 (1:Q) = 1/Q;
 transmat1 = zeros(Q);
 for i = 1:(Q-1)
     transmat1(i,i) = 0.5;
@@ -27,17 +28,17 @@ end
 transmat1(Q, Q) = 1;
 obsmat1 = ones(Q, O)* (1/O); 
 
-transmat= zeros (Q, Q,size(train_set,2));
-obsmat  = zeros(Q, O,size(train_set,2));
-LL 		= zeros (1, max_iter, size(train_set,2));
-prior	= zeros (Q,1, size(train_set,2));
+transmat= zeros (Q, Q,size(train,2));
+obsmat  = zeros(Q, O,size(train,2));
+LL 		= zeros (1, max_iter, size(train,2));
+prior	= zeros (Q,1, size(train,2));
 
 % Train primitive models
-for i=1:size(train_set,2)
-	[LL, prior(:,1,i), transmat(:,:,i), obsmat(:,:,i)] = dhmm_em(train_set{1,i,:}, prior1, transmat1, obsmat1, 'max_iter', max_iter);
+for i=1:size(train,2)
+	[LL, prior(:,1,i), transmat(:,:,i), obsmat(:,:,i)] = dhmm_em(train{1,i,:}, prior1, transmat1, obsmat1, 'max_iter', max_iter);
 end
 
-
+%TODO: right them in a jagged array
 %%%%%%%%%%%%%%%%%%% Construct square l-d-r-u HMM %%%%%%%%%%%%%%%%%%%%%%
 % Construct the transmat (1,3,2,4)
 transmat_squarel = blkdiag(transmat(:,:,1), transmat(:,:,3), transmat(:,:,2), transmat(:,:,4));
@@ -53,35 +54,50 @@ obsmat_squarel = vertcat(obsmat(:,:,1), obsmat(:,:,3), obsmat(:,:,2), obsmat(:,:
 prior_squarel = zeros (1, 4*Q);
 prior_squarel (1,1) = 1;
 
-%%%%%%%%%%%%%%%%%%% Construct square u-l-d-r HMM %%%%%%%%%%%%%%%%%%%%%%
-% Construct the transmat (3,2,4,1)
-transmat_squareu = blkdiag(transmat(:,:,3), transmat(:,:,2), transmat(:,:,4),transmat(:,:,1));
+%%%%%%%%%%%%%%%%%%% Construct square r-d-l-u HMM %%%%%%%%%%%%%%%%%%%%%%
+% Construct the transmat (2,3,1,4)
+transmat_squarer = blkdiag(transmat(:,:,2), transmat(:,:,3), transmat(:,:,1),transmat(:,:,4));
 	% Update transmat at model transition
 	for i=1:3 % As we have 3 transitions between 4 models
-		transmat_squareu(i*Q,i*Q) = 0;
-		transmat_squareu(i*Q,i*Q + 1) = 1;
+		transmat_squarer(i*Q,i*Q) = 0;
+		transmat_squarer(i*Q,i*Q + 1) = 1;
 	end
 
-% Construct the obsmat (1,3,2,4)
-obsmat_squareu = vertcat(obsmat(:,:,3), obsmat(:,:,2), obsmat(:,:,4),obsmat(:,:,1));
+% Construct the obsmat (2,3,1,4)
+obsmat_squarer = vertcat(obsmat(:,:,2), obsmat(:,:,3), obsmat(:,:,1),obsmat(:,:,4));
 % Construct the prior
-prior_squareu = zeros (1, 4*Q);
-prior_squareu (1,1) = 1;
+prior_squarer = zeros (1, 4*Q);
+prior_squarer (1,1) = 1;
 
-%%%%%%%%%%%%%%%%%%% Construct triangle (diagonal ne-sw, hline-right, diagonal se-nw) HMM  
-% Construct the transmat (5,2,7)
-transmat_triangle = blkdiag(transmat(:,:,5), transmat(:,:,2), transmat(:,:,7));
+%%%%%%%%%%%%%%%%%%% Construct trianglecw dline-nw-se, hline-left, dline-sw-ne HMM  
+% Construct the transmat (6,1,8)
+transmat_trianglecw = blkdiag(transmat(:,:,6), transmat(:,:,1), transmat(:,:,8));
 	% Update transmat at model transition
 	for i=1:2 % As we have 2 transitions between 3 models
-		transmat_triangle(i*Q,i*Q) = 0;
-		transmat_triangle(i*Q,i*Q + 1) = 1;
+		transmat_trianglecw(i*Q,i*Q) = 0;
+		transmat_trianglecw(i*Q,i*Q + 1) = 1;
+	end
+
+% Construct the obsmat (6,1,8)
+obsmat_trianglecw = vertcat(obsmat(:,:,6), obsmat(:,:,1), obsmat(:,:,8));
+% Construct the prior
+prior_trianglecw = zeros (1, 3*Q);
+prior_trianglecw (1,1) = 1;
+
+%%%%%%%%%%%%%%%%%%% Construct triangle ccw dline-ne-sw, hline-right, dline-se-nw HMM  
+% Construct the transmat (5,2,7)
+transmat_triangleccw = blkdiag(transmat(:,:,5), transmat(:,:,2), transmat(:,:,7));
+	% Update transmat at model transition
+	for i=1:2 % As we have 2 transitions between 3 models
+		transmat_triangleccw(i*Q,i*Q) = 0;
+		transmat_triangleccw(i*Q,i*Q + 1) = 1;
 	end
 
 % Construct the obsmat (5,2,7)
-obsmat_triangle = vertcat(obsmat(:,:,5), obsmat(:,:,2), obsmat(:,:,7));
+obsmat_triangleccw = vertcat(obsmat(:,:,5), obsmat(:,:,2), obsmat(:,:,7));
 % Construct the prior
-prior_triangle = zeros (1, 3*Q);
-prior_triangle (1,1) = 1;
+prior_triangleccw = zeros (1, 3*Q);
+prior_triangleccw (1,1) = 1;
 
 %%%%%%%%%%%%%%%%%%% Construct Z (hline-right, diagonal ne-sw,hline-right) HMM  
 % Construct the transmat (2,5,2)
@@ -98,32 +114,37 @@ obsmat_Z = vertcat(obsmat(:,:,2), obsmat(:,:,5), obsmat(:,:,2));
 prior_Z = zeros (1, 3*Q);
 prior_Z (1,1) = 1;
 
-%%%%%%%%%%%%%%%%%%% Construct sclck (hline-right, diagonal ne-sw,hline-right, diagonal se-nw) HMM  
-% Construct the transmat (2,5,2,7)
-transmat_sclck = blkdiag(transmat(:,:,2), transmat(:,:,5), transmat(:,:,2),transmat(:,:,7));
+%%%%%%%%%%%%%%%%%%% Construct tick (dline-nw-se, dline-sw-ne) HMM  
+% Construct the transmat (6,8)
+transmat_tick = blkdiag(transmat(:,:,6), transmat(:,:,8));
 	% Update transmat at model transition
-	for i=1:3 % As we have 3 transitions between 2 models
-		transmat_sclck(i*Q,i*Q) = 0;
-		transmat_sclck(i*Q,i*Q + 1) = 1;
+	for i=1:1 % As we have 1 transition between 2 models
+		transmat_tick(i*Q,i*Q) = 0;
+		transmat_tick(i*Q,i*Q + 1) = 1;
 	end
 
-% Construct the obsmat (2,5,2)
-obsmat_sclck = vertcat(obsmat(:,:,2), obsmat(:,:,5), obsmat(:,:,2), obsmat(:,:,7));
+% Construct the obsmat (6,8)
+obsmat_tick = vertcat(obsmat(:,:,6), obsmat(:,:,8));
 % Construct the prior
-prior_sclck = zeros (1, 4*Q);
-prior_sclck (1,1) = 1;
+prior_tick = zeros (1, 2*Q);
+prior_tick (1,1) = 1;
 
+test = test(1:8)
 % Test sets Square, triangle, Z, vs 11 models ; 4 concat models + 7 primitive models
-confusion_matrix = zeros(models_count);
+confusion_matrix = zeros(size(test,2));
 
 
 % Testing Square, triangle and Z
 % Print the number of samples
-for j = 1 : models_count  % Square is @8, triangle @9, Z @10
-	data = [acc_mapped_to_codebook{1,j}];
-	size(data,2);
+accuracy_count = 0;
+class_count = zeros (1,size(test,2));
+for j = 1 : size(test,2)  % Square is @8, triangle @9, Z @10
+	data = [test{1,j}];
+	class_count(1,j) = size(data,2);
+	accuracy_count = accuracy_count + size(data,2);
 	for i=1:size(data,2)
-		likelihood = zeros(1, models_count);
+		
+		likelihood = zeros(1, 8);
 		
 		% Against the primitive models 7 
 		for k =1: primitives % 7 primitive models
@@ -133,38 +154,46 @@ for j = 1 : models_count  % Square is @8, triangle @9, Z @10
 
 		k = primitives + 1;
 		%%%% Against the concat models
-		if k <= models_count 
+		if k <= size(test,2) 
 			% Squarel
 			likelihood(:,k) = dhmm_logprob(data{1,i}, ...
 					prior_squarel, transmat_squarel, obsmat_squarel);
 				k = k + 1;
 		end
 
-		if k <= models_count 
-			% Squareu
+		if k <= size(test,2)
+			% Squarer
 			likelihood(:,k) = dhmm_logprob(data{1,i}, ...
-					prior_squareu, transmat_squareu, obsmat_squareu);
+					prior_squarer, transmat_squarer, obsmat_squarer);
 			k = k + 1;
 		end
 
-		if k <= models_count 
-			% triangle
+		if k <= size(test,2)
+			% trianglecw
 			likelihood(:,k) = dhmm_logprob(data{1,i}, ...
-					prior_triangle, transmat_triangle, obsmat_triangle);
+					prior_trianglecw, transmat_trianglecw, obsmat_trianglecw);
 			k = k + 1;
 		end
 
-		% Z
-		if k <= models_count 
+		if k <= size(test,2)
+			% triangleccw
+			likelihood(:,k) = dhmm_logprob(data{1,i}, ...
+					prior_triangleccw, transmat_triangleccw, obsmat_triangleccw);
+			k = k + 1;
+		end
+		
+		if k <= size(test,2) 
+			% Z
 			likelihood(:,k) = dhmm_logprob(data{1,i}, ...
 					prior_Z, transmat_Z, obsmat_Z);
 
 			k = k + 1;
 		end
-		% sclck
-		if k <= models_count 
+		
+		if k <= size(test,2) 
+			% tick
 			likelihood(:,k) = dhmm_logprob(data{1,i}, ...
-					prior_sclck, transmat_sclck, obsmat_sclck);
+					prior_tick, transmat_tick, obsmat_tick);
 			
 			k = k + 1;
 		end
@@ -179,3 +208,8 @@ for j = 1 : models_count  % Square is @8, triangle @9, Z @10
 
 	end
 end
+
+class_count
+Accuracy = trace(confusion_matrix)/sum(sum(confusion_matrix))
+Accuracy_vs_class_count =  sum(diag(confusion_matrix)./class_count')/size(confusion_matrix,1)
+
