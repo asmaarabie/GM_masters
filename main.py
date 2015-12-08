@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 import random 
 import itertools
 
+logging = settings['logging']
+
 # Gesture 
 gestures = {
 	'train_root': settings['train_dataset_root'],			# Where train dataset is
@@ -96,6 +98,7 @@ def main(gestures):
 	if settings["fixed_codebook"]:
 		file_path = 'codebook_fixed.npy'
 		codebook = np.load(file_path)
+		if logging: print codebook
 	else:
 
 		file_path = 'codebook.npy'
@@ -137,7 +140,7 @@ def main(gestures):
 		pass
 	io.savemat(path, mdict={'test': np.array(gestures['acc_mapped_to_codebook_test'])})
 
-	print "distortion: " + str(distortion)
+	if logging: print "distortion: " + str(distortion)
 	with open('run.log', 'w+') as logger :
 		logger.write("========= Printing codebook: ========= \n")
 		logger.write(str(codebook)+"\n")

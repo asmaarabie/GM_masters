@@ -7,8 +7,8 @@ settings = {
 	'idle_thresh' 		: 0.15 , # 0.07 should be used so that after cleanup there are no empty
 								 # files (the file is wiped as the average of all windows < thresh)
 	#'dupl_thresh'		: 0.1,
-	'codebook_size' 	: 27,
-	'logging' 			: True,
+	'codebook_size' 	: 8,
+	'logging' 			: 1,
 	'train_dataset_root' 		: './Datasets/lines_60hz/Train/', # Where train dataset is
 	'test_dataset_root' 		: './Datasets/lines_60hz/Test/', # Where test dataset is
 	# 'train_dirs' 	: ['hline-left-s', 'hline-right-s'],
@@ -38,7 +38,7 @@ settings = {
 								# contribute to the motion. '' means use all
 	'load_codebook'		: 0,
 	'load_bias'			: 1,
-	'fixed_codebook'	: 1, 	# Is the codebook fixed? 
+	'fixed_codebook'	: 0, 	# Is the codebook fixed? 
 }
 
 

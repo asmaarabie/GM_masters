@@ -4,16 +4,17 @@ import numpy as np
 from settings import settings
 import copy
 import re
+
+logging = settings['logging']
 def get_gesture_readings (gesture_dir, gesture_root):
 	# Get bias values
 	bias_ret = []
-	if settings['logging']:
-		print "bias is:" + str(bias_ret)
-		if settings['remove_bias']:
-			print 'remove bias'
-			bias_ret = bias()
-		else: 
-			print " don't remove bias"
+	if logging: print "bias is:" + str(bias_ret)
+	if settings['remove_bias']:
+		if logging: print 'remove bias'
+		bias_ret = bias()
+	elif logging: 
+		print " don't remove bias"
 
 	acc_readings = []
 	gyro_readings = []
@@ -40,7 +41,7 @@ def get_gesture_readings (gesture_dir, gesture_root):
 		acc_readings.append(gesture_acc_readings)
 		gyro_readings.append(gesture_gyro_readings)
 
-	print "Max is " + str(max(max(max(acc_readings))))
+	if logging: print "Max is " + str(max(max(max(acc_readings))))
 	return [acc_readings, gyro_readings]
 
 def get_file_readings(file_name, bias_ret):
@@ -83,7 +84,7 @@ def get_file_readings(file_name, bias_ret):
 			count_aft = len(readings['acc'])
 			
 
-			if settings['logging'] :
+			if logging :
 				print "length before delineation: " + str(count_bef)
 				count = [r for r in readings['acc'] if r != [0.0,0.0,0.0]]
 				print "length after delineation: " + str(count_aft)
@@ -265,7 +266,7 @@ def delineate_backward(g_file, file_name):
 	while mark in new_g_file:
 	 		new_g_file.remove(mark)
 	
-	if len(new_g_file) == 0 and settings['logging']:
+	if len(new_g_file) == 0 and logging:
 		print "Empty file after cleanup: " + str (file_name)
 	return new_g_file
 
@@ -301,13 +302,11 @@ def runningAverage(readings):
 			g_file_r = []
 			for i in range (0, len(g_file) - settings['window_size'], settings['step_size']):
 				reading = [0,0,0]
-				if settings['logging']:
-					print str(i) + " i"
+				if logging: print str(i) + " i"
 				for j in range (0, settings['window_size']):
 					reading = [sum(x) for x in zip(reading, g_file[i+j])]
 				reading = [ x*1.0 / settings['window_size'] for x in reading]
-				if settings['logging']:
-					print reading
+				if logging: print reading
 				g_file_r.append(reading)
 			gesture_r.append(g_file_r)
 		final_readings.append(gesture_r)		
@@ -337,7 +336,7 @@ def bias ():
 	for root,_, files in os.walk(settings ['bias-calib-dir'], topdown=False):
 		for name in files :	
 			file_name = os.path.join(root, name)
-			print file_name
+			if logging: print file_name
 			with open(file_name, 'r') as handler:
 				# skip first line 
 				handler.readline()

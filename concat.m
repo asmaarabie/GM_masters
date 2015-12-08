@@ -13,14 +13,14 @@ load('Datasets/processed/line60hz_test.mat');
 primitives = size(train,2);
 
 % Prepare HMM
-Q = 4;
-O = 27;
+Q = 8; 
+O = 8;
 max_iter =10;
 
 % initial guess of parameters
 prior1 = zeros(Q,1);
 prior1 (1:Q) = 1/Q;
-transmat1 = zeros(Q);
+transmat1 = zeros(Q, Q);
 for i = 1:(Q-1)
     transmat1(i,i) = 0.5;
     transmat1(i,i+1) = 0.5;
@@ -38,98 +38,28 @@ for i=1:size(train,2)
 	[LL, prior(:,1,i), transmat(:,:,i), obsmat(:,:,i)] = dhmm_em(train{1,i,:}, prior1, transmat1, obsmat1, 'max_iter', max_iter);
 end
 
+%%%%%%%%%%%%% Concatenated models
 %TODO: right them in a jagged array
-%%%%%%%%%%%%%%%%%%% Construct square l-d-r-u HMM %%%%%%%%%%%%%%%%%%%%%%
-% Construct the transmat (1,3,2,4)
-transmat_squarel = blkdiag(transmat(:,:,1), transmat(:,:,3), transmat(:,:,2), transmat(:,:,4));
-	% Update transmat at model transition
-	for i=1:3 % As we have 3 transitions between 4 models
-		transmat_squarel(i*Q,i*Q) = 0;
-		transmat_squarel(i*Q,i*Q + 1) = 1;
-	end
 
-% Construct the obsmat (1,3,2,4)
-obsmat_squarel = vertcat(obsmat(:,:,1), obsmat(:,:,3), obsmat(:,:,2), obsmat(:,:,4));
-% Construct the prior
-prior_squarel = zeros (1, 4*Q);
-prior_squarel (1,1) = 1;
+% Construct square l-d-r-u HMM (1,3,2,4)
+[transmat_squarel, obsmat_squarel, prior_squarel] = joinHMM (transmat,obsmat,prior,[1 3 2 4]);
 
-%%%%%%%%%%%%%%%%%%% Construct square r-d-l-u HMM %%%%%%%%%%%%%%%%%%%%%%
-% Construct the transmat (2,3,1,4)
-transmat_squarer = blkdiag(transmat(:,:,2), transmat(:,:,3), transmat(:,:,1),transmat(:,:,4));
-	% Update transmat at model transition
-	for i=1:3 % As we have 3 transitions between 4 models
-		transmat_squarer(i*Q,i*Q) = 0;
-		transmat_squarer(i*Q,i*Q + 1) = 1;
-	end
+% Construct square r-d-l-u HMM (2,3,1,4)
+[transmat_squarer, obsmat_squarer, prior_squarer] = joinHMM (transmat,obsmat,prior,[2 3 1 4]);
 
-% Construct the obsmat (2,3,1,4)
-obsmat_squarer = vertcat(obsmat(:,:,2), obsmat(:,:,3), obsmat(:,:,1),obsmat(:,:,4));
-% Construct the prior
-prior_squarer = zeros (1, 4*Q);
-prior_squarer (1,1) = 1;
+% Construct trianglecw dline-nw-se, hline-left, dline-sw-ne HMM (6,1,8)
+[transmat_trianglecw, obsmat_trianglecw, prior_trianglecw] = joinHMM (transmat,obsmat,prior,[6 1 8]);
 
-%%%%%%%%%%%%%%%%%%% Construct trianglecw dline-nw-se, hline-left, dline-sw-ne HMM  
-% Construct the transmat (6,1,8)
-transmat_trianglecw = blkdiag(transmat(:,:,6), transmat(:,:,1), transmat(:,:,8));
-	% Update transmat at model transition
-	for i=1:2 % As we have 2 transitions between 3 models
-		transmat_trianglecw(i*Q,i*Q) = 0;
-		transmat_trianglecw(i*Q,i*Q + 1) = 1;
-	end
+% Construct triangle ccw dline-ne-sw, hline-right, dline-se-nw HMM  (5,2,7)
+[transmat_triangleccw, obsmat_triangleccw, prior_triangleccw] = joinHMM (transmat,obsmat,prior,[5 2 7]);
 
-% Construct the obsmat (6,1,8)
-obsmat_trianglecw = vertcat(obsmat(:,:,6), obsmat(:,:,1), obsmat(:,:,8));
-% Construct the prior
-prior_trianglecw = zeros (1, 3*Q);
-prior_trianglecw (1,1) = 1;
+% Construct Z (hline-right, diagonal ne-sw,hline-right) HMM  (2,5,2)
+[transmat_Z, obsmat_Z, prior_Z] = joinHMM (transmat,obsmat,prior,[2 5 2]);
 
-%%%%%%%%%%%%%%%%%%% Construct triangle ccw dline-ne-sw, hline-right, dline-se-nw HMM  
-% Construct the transmat (5,2,7)
-transmat_triangleccw = blkdiag(transmat(:,:,5), transmat(:,:,2), transmat(:,:,7));
-	% Update transmat at model transition
-	for i=1:2 % As we have 2 transitions between 3 models
-		transmat_triangleccw(i*Q,i*Q) = 0;
-		transmat_triangleccw(i*Q,i*Q + 1) = 1;
-	end
+% Construct tick (dline-nw-se, dline-sw-ne) HMM (6,8)
+[transmat_tick, obsmat_tick, prior_tick] = joinHMM (transmat,obsmat,prior,[6 8]);
 
-% Construct the obsmat (5,2,7)
-obsmat_triangleccw = vertcat(obsmat(:,:,5), obsmat(:,:,2), obsmat(:,:,7));
-% Construct the prior
-prior_triangleccw = zeros (1, 3*Q);
-prior_triangleccw (1,1) = 1;
-
-%%%%%%%%%%%%%%%%%%% Construct Z (hline-right, diagonal ne-sw,hline-right) HMM  
-% Construct the transmat (2,5,2)
-transmat_Z = blkdiag(transmat(:,:,2), transmat(:,:,5), transmat(:,:,2));
-	% Update transmat at model transition
-	for i=1:2 % As we have 2 transitions between 3 models
-		transmat_Z(i*Q,i*Q) = 0;
-		transmat_Z(i*Q,i*Q + 1) = 1;
-	end
-
-% Construct the obsmat (2,5,2)
-obsmat_Z = vertcat(obsmat(:,:,2), obsmat(:,:,5), obsmat(:,:,2));
-% Construct the prior
-prior_Z = zeros (1, 3*Q);
-prior_Z (1,1) = 1;
-
-%%%%%%%%%%%%%%%%%%% Construct tick (dline-nw-se, dline-sw-ne) HMM  
-% Construct the transmat (6,8)
-transmat_tick = blkdiag(transmat(:,:,6), transmat(:,:,8));
-	% Update transmat at model transition
-	for i=1:1 % As we have 1 transition between 2 models
-		transmat_tick(i*Q,i*Q) = 0;
-		transmat_tick(i*Q,i*Q + 1) = 1;
-	end
-
-% Construct the obsmat (6,8)
-obsmat_tick = vertcat(obsmat(:,:,6), obsmat(:,:,8));
-% Construct the prior
-prior_tick = zeros (1, 2*Q);
-prior_tick (1,1) = 1;
-
-test = test(1:8)
+%test = test(1:8)
 % Test sets Square, triangle, Z, vs 11 models ; 4 concat models + 7 primitive models
 confusion_matrix = zeros(size(test,2));
 
